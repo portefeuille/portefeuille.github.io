@@ -1,0 +1,69 @@
+.Aligner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color:rgb(250,250,250);
+}
+
+.Aligner-item {
+  flex: 1;
+  text-align:center;
+  background-color: #6610f2;
+  margin: 1%;
+}
+
+.Aligner-item--left {
+  margin-left:0;
+}
+
+.Aligner-item--right {
+  margin-right:0;
+}
+
+html:{
+	width:100%;
+	
+}
+
+body{
+	max-width: 600px;
+	margin:    0 auto;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+a{
+	text-decoration: none;
+	color: #d1d1f0;
+}
+
+.marron{
+	color: rgb(176,114,25);
+}
+
+footer{
+	clear:both;
+	text-align:right;
+	font-size: small;	
+}
+
+table{
+	width:100%
+}
+
+.texte{
+	text-align:center;
+}
+
+.chiffre{
+	text-align:right;
+}
+
+article{
+	background-color:rgb(250,250,250);
+	margin:0;
+	padding:2%;
+}
+
+tfoot{
+	font-weight: bold;
+}
