@@ -1,0 +1,257 @@
+<!doctype html>
+
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Un portefeuille bizarre</title>
+  <style>
+  .vertical{
+	width:1em;
+  }
+  input{
+	width:4em;
+  }
+  body{
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  }
+  </style>
+</head>
+
+<body>
+
+<script src="portfolio_allocation.dist.min.js" type="text/javascript"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script> 
+<script type="text/javascript">
+	var n = 9;
+	var names = ['Obligations d\'États zone euro', 'Actions marchés émergents', 'Actions USA', 'Obligations d\'entreprises zone euro', 'Actions zone euro', 'Actions petites capi. zone euro', 'Actions Japon', 'Actions monde développé', 'Or'];
+	var expectedReturns = [2, 7.5, 4.25, 2.5, 6, 6.25, 5.75, 4.75, 1.5];
+	var expectedVolat = [4, 17, 13.25, 4.5, 16.25, 17, 14, 12.5, 17.25];
+	var fees = [0.67, 0.70, 0.75, 0.8, 0.8, 1, 0.85, 0.9, 1.35];
+	var semiCorrelationMatrix = [
+		[1,-0.07,-0.06,0.56,-0.04,-0.08,-0.02,-0.06,0.15],
+		[-0.07,1,0.61,0.48,0.71,0.71,0.52,0.74,0.03],
+		[-0.06,0.61,1,0.33,0.68,0.6,0.66,0.96,-0.1],
+		[0.56,0.48,0.33,1,0.44,0.45,0.35,0.48,0.12],
+		[-0.04,0.71,0.68,0.44,1,0.92,0.52,0.83,-0.27],
+		[-0.08,0.71,0.6,0.45,0.92,1,0.49,0.76,-0.23],
+		[-0.02,0.52,0.66,0.35,0.52,0.49,1,0.73,-0.08],
+		[-0.06,0.74,0.96,0.48,0.83,0.76,0.73,1,-0.12],
+		[0.15,0.03,-0.1,0.12,-0.27,-0.23,-0.08,-0.12,1]
+	];
+	var volatilite = 0.075743;
+	
+	google.charts.load('current', {'packages':['corechart']});
+	google.charts.setOnLoadCallback(drawChart);
+
+	function matriceNomsPoids(poids){
+		var res = [];
+		res[0] = new Array(2);
+		res[0][0]='Actif';
+		res[0][1]='Poids';
+		for (let i = 0; i < n; i++) {
+			res[i+1] = new Array(2);
+			res[i+1][0]=names[i];
+			res[i+1][1]=poids[i];
+		}
+		return res;
+	}
+	
+	function drawChart() {
+		var poids = PortfolioAllocation.meanVarianceOptimizationWeights(getExpReturns(), getCovMatrix(), { optimizationMethod: 'maximumTargetVolatility', constraints: {maxVolatility: volatilite}});
+		var data = google.visualization.arrayToDataTable(matriceNomsPoids(poids));
+		var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+		chart.draw(data);
+	}
+	
+	function getCovMatrix(){
+		var res = [];
+		for (let i = 0; i < n; i++) {
+			res[i] = new Array(n);
+			for (let j = 0; j < n; j++) {
+				res[i][j]=semiCorrelationMatrix[i][j]*expectedVolat[i]/100*expectedVolat[j]/100;
+			}
+		}
+		return res;
+	}
+	
+	function getExpReturns(){
+		var res = [];
+		for (let i = 0; i < n; i++) {
+			res[i] = (expectedReturns[i]-fees[i])/100;
+		}
+		return res;
+	}
+	
+	function menageTableau(i,tab){
+		var localTab = [];
+		var j = 0;
+		for (let k = 0; k < n; k++) {
+			if(i!=k){
+				localTab[j]=tab[k];
+				j++;
+			}
+		}
+		return localTab;
+	}
+	
+	function menageMatrice(k){
+		var res = [];
+		var p=0;
+		var m=0;
+		for (let i = 0; i < n; i++) {
+			if(i!=k){
+				res[p] = new Array(n-1);
+				for (let j = 0; j < n; j++) {
+					if(j!=k){
+						res[p][m]=semiCorrelationMatrix[i][j];
+						m++;
+					}
+				}
+				p++;
+				m=0;
+			}
+		}
+		return res;
+	}
+	
+	function ajouteLigneColonne(){
+		for (let i = 0; i < n; i++) {
+			semiCorrelationMatrix[i][n]=0;
+		}
+		semiCorrelationMatrix[n] = new Array(n+1);
+		for (let i = 0; i < n; i++) {
+			semiCorrelationMatrix[n][i]=0;
+		}
+		semiCorrelationMatrix[n][n]=1;
+		return semiCorrelationMatrix;
+	}
+	
+	$( document ).ready(function() {
+		function afficheTableau(){
+			$("#corps").empty();
+			$("#entete").empty();
+			$("#entete").append('<th>Nom</th><th class="vertical">Perf. attendue (en %)</th><th class="vertical">Volat. attendue (en %)</th><th class="vertical">Frais (en %)</th>');
+			
+			for (let i = 0; i < n; i++) {			
+				$("#entete").append('<th class="vertical" id="miroir_actif_'+i+'">'+names[i]+'</th>');
+				
+				var ligne = '<tr><td><input type="text" value="'+names[i]+'" id="actif_'+i+'" style="width:15em" class="nom_actif" /><a href="#" class="remove_field" id="trash_'+i+'"><img src="Trash_Can.svg" style="height:1.25em" title="supprimer" /></a></td>';
+				ligne += '<td><input type="number" id="er_'+i+'" class="er" value="'+expectedReturns[i]+'" /></td>';
+				ligne += '<td><input type="number" id="ev_'+i+'" class="ev" value="'+expectedVolat[i]+'" /></td>';
+				ligne += '<td><input type="number" id="fee_'+i+'" class="fee" value="'+fees[i]+'" /></td>';
+				for (let j = 0; j < n; j++) {
+					ligne += '<td><input type="number" class="corr" id="corr_'+i+'_'+j+'" ';
+					if(j>=i){
+						ligne+=' disabled="true" ';
+					}
+					ligne+=' value="'+semiCorrelationMatrix[i][j]+'" ';
+					ligne+=' /></td>';
+				}
+				ligne += '</tr>';
+				$("#corps").append(ligne);
+			}
+		}
+		
+		$( "#optimize" ).click(function() {
+			drawChart();
+		});
+		
+		$('body').on('change', '.nom_actif', function () {
+			var parts = $( this ).attr('id').split("_");
+			var i = parts[1];
+			
+			names[i]=$( this ).val()
+			$("#miroir_actif_"+i).text($( this ).val());
+		});
+		
+		$('body').on('change', '.er', function () {
+			var parts = $( this ).attr('id').split("_");
+			var i = parts[1];
+			expectedReturns[i]=$( this ).val()
+		});
+		
+		$('body').on('change', '.ev', function () {
+			var parts = $( this ).attr('id').split("_");
+			var i = parts[1];
+			expectedVolat[i]=$( this ).val()
+		});
+		
+		$('body').on('change', '.fee', function () {
+			var parts = $( this ).attr('id').split("_");
+			var i = parts[1];
+			fees[i]=$( this ).val()
+		});
+		
+		$('body').on('change', '.corr', function () {
+			var parts = $( this ).attr('id').split("_");
+			var i = parts[1];
+			var j = parts[2];
+			semiCorrelationMatrix[i][j]=$( this ).val();
+			semiCorrelationMatrix[j][i]=$( this ).val();
+			
+			afficheTableau();
+		});
+		
+		$('body').on('click', '.remove_field', function () {
+			var parts = $( this ).attr('id').split("_");
+			var i = parts[1];
+			
+			names = menageTableau(i,names);
+			expectedReturns = menageTableau(i,expectedReturns);
+			expectedVolat = menageTableau(i,expectedVolat);
+			fees = menageTableau(i,fees);
+			semiCorrelationMatrix = menageMatrice(i);
+			n--;
+			
+			afficheTableau();			
+		});
+		
+		$('body').on('click', '.add_field', function () {
+			names[n]='Nouvel actif';
+			expectedReturns[n]=0;
+			expectedVolat[n]=0;
+			fees[n]=0;
+			semiCorrelationMatrix = ajouteLigneColonne();
+			n++;
+			
+			afficheTableau();			
+		});
+		
+		$('body').on('change', '#volatilite', function () {
+			volatilite = $( this ).val();
+			drawChart();
+		});
+		
+		afficheTableau();
+	});
+</script>
+
+<div style="margin:auto; width:1200px">
+	<h1>Un portefeuille bizarre</h1>
+	<p>Cet outil est inspiré de <a href="https://www.theweirdportfolio.com/">The Weird Portfolio</a>. Comme lui, il effectue une optimisation
+	moyenne-variance pour constituer le portefeuille théoriquement le plus performant sous contrainte de volatilité. L'ambition est cependant plus modeste, The Weird Portfolio croise
+	plusieurs sources et effectue des simulations plus poussées.</p>
+	<div id="piechart" style="width: 1200px; height: 500px;"></div>
+	<p style="text-align:center">Changer la volatilité tolérée. La valeur par défaut est celle du portefeuille 60% actions monde développé + 40% obligations d'États zone euro.<br />
+	<input type="range" name="points" min="0.04" max="0.145" value="0.075743" step="0.005" id="volatilite" style="width:800px" /></p>
+	
+	<table>
+		<thead>
+			<tr id="entete">
+			</tr>
+		</thead>
+		<tbody id="corps">
+		</tbody>
+	</table>
+	<button class="add_field">Ajouter un actif</button><button id="optimize">Trouver la répartition</button>
+	
+	<p>Les données par défaut sont issues du
+	<a href="https://am.jpmorgan.com/blob-gim/1383582209612/83456/2019%20LTCMA%20MATRIX%20-%20EUR%20(A4).pdf">2019 Long-Term Capital Market Assumptions</a> en € de JPMorgan,
+	mais sont personnalisables.</p>
+	<p>Les actifs sélectionnés sont représentatifs de ce qu'un français pourrait sélectionner sur une assurance vie Linxea Avenir en utilisant des ETF. Il est possible d'en ajouter
+	librement pour tester d'autres cas.</p>
+</div>
+
+</body>
+</html>
