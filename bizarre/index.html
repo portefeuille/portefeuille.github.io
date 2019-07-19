@@ -136,7 +136,7 @@
 			for (let i = 0; i < n; i++) {			
 				$("#entete").append('<th class="vertical" id="miroir_actif_'+i+'">'+names[i]+'</th>');
 				
-				var ligne = '<tr><td><input type="text" value="'+names[i]+'" id="actif_'+i+'" style="width:15em" class="nom_actif" /><a href="#" class="remove_field" id="trash_'+i+'"><img src="Trash_Can.svg" style="height:1.25em" title="supprimer" /></a></td>';
+				var ligne = '<tr><td><input type="text" value="'+names[i]+'" id="actif_'+i+'" style="width:15em" class="nom_actif" /><a href="#entete" class="remove_field" id="trash_'+i+'"><img src="Trash_Can.svg" style="height:1.25em" title="supprimer" /></a></td>';
 				ligne += '<td><input type="number" id="er_'+i+'" class="er" value="'+expectedReturns[i]+'" /></td>';
 				ligne += '<td><input type="number" id="ev_'+i+'" class="ev" value="'+expectedVolat[i]+'" /></td>';
 				ligne += '<td><input type="number" id="fee_'+i+'" class="fee" value="'+fees[i]+'" /></td>';
